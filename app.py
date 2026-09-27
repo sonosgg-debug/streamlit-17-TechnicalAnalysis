@@ -723,7 +723,7 @@ if data:
         </div>
         <div style="font-size: 0.84rem; color: #94a3b8; background-color: #141824; border: 1px solid #283347; border-radius: 8px; padding: 10px 14px; margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; line-height: 1.5;">
             <span style="color: #8AB4F8; font-weight: 700; white-space: nowrap;">📊 기술적 종합 점수 산출 기준:</span>
-            <span>이동평균선 배열(25%), MACD(20%), RSI(20%), 볼린저 밴드(15%), 스토캐스틱(10%), 거래량(10%)을 종합 가중치로 평가해 -100 ~ +100점으로 산출합니다.</span>
+            <span>이동평균 & 추세(30%), 모멘텀(RSI/스토캐스틱, 25%), MACD 추세 강도(25%), 볼린저 & 거래량(20%)의 4대 영역 점수를 합산해 -100 ~ +100점으로 산출합니다.</span>
         </div>
     </div>
     """
