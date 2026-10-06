@@ -3,10 +3,6 @@ app.py
 기술적 분석(Technical Analysis) 및 각종 보조지표 기반 투자 의견 제시 대시보드
 """
 
-
-import socket
-socket.setdefaulttimeout(5.0)
-
 import os
 import streamlit as st
 import pandas as pd
@@ -368,7 +364,6 @@ st.html("""
 </style>
 """)
 
-
 # ---------------- 3. 사이드바 컨트롤 ----------------
 with st.sidebar:
     st.markdown(
@@ -533,7 +528,6 @@ if query_clicked or st.session_state["analyzed_data"] is None:
                     "show_ma": show_ma,
                     "show_bb": show_bb
                 }
-
 
 # ---------------- 4. 메인 대시보드 렌더링 ----------------
 # 4.0 최상단 대시보드 메인 타이틀 영역 (항상 최상단에 상시 표시)
