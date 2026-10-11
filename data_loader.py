@@ -4,6 +4,23 @@ data_loader.py
 31 PerformanceChart 방식을 적용하여 KRX 전체 상장 종목 캐싱 및 고도화된 종목 검색/해석 기능 지원
 """
 
+import sys
+# Python 3.12+ 및 Streamlit Cloud 환경에서 pkg_resources 의존성 결함 방어용 Mock Shim
+try:
+    import pkg_resources
+except Exception:
+    try:
+        import setuptools.command
+        import pkg_resources
+    except Exception:
+        import types
+        pkg_mock = types.ModuleType("pkg_resources")
+        pkg_mock.resource_filename = lambda *args, **kwargs: ""
+        pkg_mock.resource_string = lambda *args, **kwargs: b""
+        pkg_mock.Requirement = type("Requirement", (), {"parse": lambda s: s})
+        pkg_mock.get_distribution = lambda *args, **kwargs: type("Dist", (), {"version": "1.0.0"})()
+        sys.modules["pkg_resources"] = pkg_mock
+
 import os
 from datetime import datetime, timezone, timedelta
 KST = timezone(timedelta(hours=9))

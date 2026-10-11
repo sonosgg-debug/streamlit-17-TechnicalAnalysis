@@ -1,10 +1,32 @@
-"""
-app.py
-기술적 분석(Technical Analysis) 및 각종 보조지표 기반 투자 의견 제시 대시보드
-"""
+import sys
+# Python 3.12+ 및 Streamlit Cloud 환경에서 pkg_resources 의존성 결함 방어용 Mock Shim
+try:
+    import pkg_resources
+except Exception:
+    try:
+        import setuptools.command
+        import pkg_resources
+    except Exception:
+        import types
+        pkg_mock = types.ModuleType("pkg_resources")
+        pkg_mock.resource_filename = lambda *args, **kwargs: ""
+        pkg_mock.resource_string = lambda *args, **kwargs: b""
+        pkg_mock.Requirement = type("Requirement", (), {"parse": lambda s: s})
+        pkg_mock.get_distribution = lambda *args, **kwargs: type("Dist", (), {"version": "1.0.0"})()
+        sys.modules["pkg_resources"] = pkg_mock
 
 import os
 import streamlit as st
+
+# [가이드 05] Streamlit 명령 최우선 실행 보장 (StreamlitAPIException 및 무한 로딩 방어)
+FAVICON_PATH = os.path.join(os.path.dirname(__file__), "favicon.png")
+st.set_page_config(
+    page_title="Technical Analysis Pro - 기술적 분석 대시보드",
+    page_icon=FAVICON_PATH if os.path.exists(FAVICON_PATH) else None,
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 import pandas as pd
 from datetime import datetime
 from datetime import timezone, timedelta
@@ -13,13 +35,16 @@ import textwrap
 import importlib
 
 # 하위 모듈 변경 시 메모리 캐시 우회 및 실시간 핫 리로드 보장
-import data_loader
-import analyzer
-import chart_plotter
-
-importlib.reload(data_loader)
-importlib.reload(analyzer)
-importlib.reload(chart_plotter)
+try:
+    import data_loader
+    import analyzer
+    import chart_plotter
+    importlib.reload(data_loader)
+    importlib.reload(analyzer)
+    importlib.reload(chart_plotter)
+except Exception as e:
+    st.error(f"모듈 로드 중 오류가 발생했습니다: {e}")
+    st.stop()
 
 from data_loader import (
     load_krx_data,
@@ -40,16 +65,6 @@ from analyzer import (
     evaluate_investment_opinion
 )
 from chart_plotter import create_financial_chart
-
-# ---------------- 1. 페이지 환경 설정 ----------------
-FAVICON_PATH = os.path.join(os.path.dirname(__file__), "favicon.png")
-
-st.set_page_config(
-    page_title="Technical Analysis Pro - 기술적 분석 대시보드",
-    page_icon=FAVICON_PATH if os.path.exists(FAVICON_PATH) else None,
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # ---------------- 2. 커스텀 CSS 스타일링 ----------------
 # st.html을 사용하여 마크다운 파서의 간섭 없이 순수 CSS 주입
