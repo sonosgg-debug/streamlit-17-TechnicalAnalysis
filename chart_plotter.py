@@ -63,7 +63,7 @@ def create_financial_chart(
                 y=df["BB_Upper"],
                 name="BB 상단 (20,2)",
                 line=dict(color="#00E5FF", width=2.0),  # 선명한 실선 경계
-                hoverinfo="name+y"
+                hoverinfo="x+y+name"
             ),
             row=1, col=1
         )
@@ -75,7 +75,7 @@ def create_financial_chart(
                 line=dict(color="#00E5FF", width=2.0),  # 선명한 실선 경계
                 fill="tonexty",
                 fillcolor="rgba(0, 229, 255, 0.07)",  # 투명도를 높여 차트 봉(양봉/음봉) 색상이 전혀 가려지지 않는 은은한 채움
-                hoverinfo="name+y"
+                hoverinfo="x+y+name"
             ),
             row=1, col=1
         )
@@ -111,7 +111,7 @@ def create_financial_chart(
                         y=df[col],
                         name=label,
                         line=dict(color=color, width=width),
-                        hoverinfo="name+y"
+                        hoverinfo="x+y+name"
                     ),
                     row=1, col=1
                 )
@@ -176,7 +176,7 @@ def create_financial_chart(
                     y=df["Vol_SMA20"],
                     name="거래량 20선",
                     line=dict(color="#F59E0B", width=1.2),
-                    hoverinfo="name+y"
+                    hoverinfo="x+y+name"
                 ),
                 row=2, col=1
             )
@@ -202,7 +202,7 @@ def create_financial_chart(
                 y=df["MACD"],
                 name="MACD",
                 line=dict(color="#38bdf8", width=1.5),
-                hoverinfo="name+y"
+                hoverinfo="x+y+name"
             ),
             row=3, col=1
         )
@@ -213,7 +213,7 @@ def create_financial_chart(
                 y=df["MACD_Signal"],
                 name="Signal",
                 line=dict(color="#f43f5e", width=1.5),
-                hoverinfo="name+y"
+                hoverinfo="x+y+name"
             ),
             row=3, col=1
         )
@@ -228,7 +228,7 @@ def create_financial_chart(
                 y=df["RSI"],
                 name="RSI (14)",
                 line=dict(color="#8B5CF6", width=1.5),
-                hoverinfo="name+y"
+                hoverinfo="x+y+name"
             ),
             row=4, col=1
         )
