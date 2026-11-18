@@ -404,6 +404,13 @@ with st.sidebar:
         horizontal=True
     )
 
+    # 분석 모드(개별 종목 <-> 시장 지수) 변경 시 분석 데이터 자동 갱신 트리거
+    if "current_analysis_mode" not in st.session_state:
+        st.session_state["current_analysis_mode"] = analysis_mode
+    elif st.session_state["current_analysis_mode"] != analysis_mode:
+        st.session_state["current_analysis_mode"] = analysis_mode
+        st.session_state["analyzed_data"] = None
+
     if analysis_mode == "개별 종목":
         # KRX 종목 데이터 로드 (31 PerformanceChart 방식: 캐싱 및 전 종목 리스트)
         krx_df = load_krx_data()

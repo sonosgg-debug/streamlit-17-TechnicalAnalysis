@@ -399,10 +399,12 @@ def resolve_stock_selection(selected_display: str, krx_df: pd.DataFrame = None) 
 def fetch_raw_data(ticker: str, market: str, start_date: datetime, end_date: datetime) -> pd.DataFrame:
     """
     시장 구분(한국/미국)에 맞추어 주가 데이터를 수집합니다.
+    yfinance의 end 매개변수는 exclusive(미포함)이므로, 당일(end_date)을 온전히 포함하기 위해 +1일을 지정합니다.
     """
     df = pd.DataFrame()
     start_str = start_date.strftime("%Y-%m-%d")
-    end_str = end_date.strftime("%Y-%m-%d")
+    yf_end_str = (end_date + timedelta(days=1)).strftime("%Y-%m-%d")
+    end_str = yf_end_str
 
     clean_ticker = ticker.replace(".KS", "").replace(".KQ", "").replace(".ks", "").replace(".kq", "")
     is_kr_market = market in ["한국 (KRX)", "KOSPI", "KOSDAQ"] or clean_ticker.isdigit()
@@ -416,16 +418,16 @@ def fetch_raw_data(ticker: str, market: str, start_date: datetime, end_date: dat
                 primary_suffix = ".KQ" if market == "KOSDAQ" else ".KS"
                 secondary_suffix = ".KS" if primary_suffix == ".KQ" else ".KQ"
                 
-                df_yf = yf.download(f"{clean_ticker}{primary_suffix}", start=start_str, end=end_str, progress=False)
+                df_yf = yf.download(f"{clean_ticker}{primary_suffix}", start=start_str, end=yf_end_str, progress=False)
                 if df_yf.empty or len(df_yf) < 5:
-                    df_yf = yf.download(f"{clean_ticker}{secondary_suffix}", start=start_str, end=end_str, progress=False)
+                    df_yf = yf.download(f"{clean_ticker}{secondary_suffix}", start=start_str, end=yf_end_str, progress=False)
                 if not df_yf.empty:
                     df = df_yf
         except Exception:
             # 오류 시 yfinance 폴백
             try:
                 for suffix in [".KS", ".KQ"]:
-                    df_yf = yf.download(f"{clean_ticker}{suffix}", start=start_str, end=end_str, progress=False)
+                    df_yf = yf.download(f"{clean_ticker}{suffix}", start=start_str, end=yf_end_str, progress=False)
                     if not df_yf.empty:
                         df = df_yf
                         break
@@ -434,7 +436,7 @@ def fetch_raw_data(ticker: str, market: str, start_date: datetime, end_date: dat
     else:
         # 미국 시장
         try:
-            df = yf.download(ticker, start=start_str, end=end_str, progress=False)
+            df = yf.download(ticker, start=start_str, end=yf_end_str, progress=False)
         except Exception:
             try:
                 df = fdr.DataReader(ticker, start_str, end_str)
@@ -572,23 +574,45 @@ def get_stock_data(ticker_input: str, market: str = None, timeframe: str = "일�
 
 def fetch_index_raw_data(index_info: dict, start_date: datetime, end_date: datetime) -> pd.DataFrame:
     """
-    주요 시장 지수 데이터를 yfinance 우선 및 FDR(네이버/캐시) 폴백을 통해 실시간성 및 장기 연속성을 확보하여 수집합니다.
+    주요 시장 지수 데이터를 yfinance 및 FDR(네이버/KRX)을 연계하여 실시간성 및 장기 연속성을 확보하여 수집합니다.
+    yfinance의 end 매개변수는 exclusive(미포함)이므로, 당일(end_date)을 온전히 포함하기 위해 +1일을 지정합니다.
     """
     start_str = start_date.strftime("%Y-%m-%d")
-    end_str = end_date.strftime("%Y-%m-%d")
+    yf_end_str = (end_date + timedelta(days=1)).strftime("%Y-%m-%d")
+    end_str = yf_end_str
     df = pd.DataFrame()
 
     yf_sym = index_info.get("ticker")
     fdr_sym = index_info.get("fdr_ticker")
+    is_kr_index = "국내 지수" in index_info.get("market", "")
 
     # 1. yfinance 우선 시도 (당일 마감 최신 데이터 및 최대 20년 장기 연속성 보장)
     if yf_sym:
         try:
-            df = yf.download(yf_sym, start=start_str, end=end_str, progress=False)
+            df = yf.download(yf_sym, start=start_str, end=yf_end_str, progress=False)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
         except Exception:
             pass
 
-    # 2. 실패 또는 데이터 부족 시 FinanceDataReader 실시간/폴백 시도
+    # 2. 국내 지수(KOSPI, KOSDAQ) 실시간 데이터 보완 및 최신일자 검증:
+    # 만약 yfinance 데이터가 비어있거나, 최신 일자가 당일 확정 영업일보다 이전인 경우 FDR(네이버/KRX)에서 최신 데이터를 보완/병합
+    if is_kr_index:
+        expected_day = get_latest_expected_trading_day()
+        need_fdr = df.empty or (len(df) >= 1 and df.index[-1].strftime("%Y-%m-%d") < expected_day)
+        if need_fdr and fdr_sym:
+            try:
+                df_fdr = fdr.DataReader(fdr_sym, start_str, end_str)
+                if not df_fdr.empty:
+                    if df.empty or len(df) < 5:
+                        df = df_fdr
+                    elif df_fdr.index[-1] > df.index[-1]:
+                        missing = df_fdr[df_fdr.index > df.index[-1]]
+                        df = pd.concat([df, missing])
+            except Exception:
+                pass
+
+    # 3. 실패 또는 데이터 부족 시 FinanceDataReader 실시간/폴백 시도
     if df.empty or len(df) < 5:
         if fdr_sym:
             try:
@@ -596,7 +620,7 @@ def fetch_index_raw_data(index_info: dict, start_date: datetime, end_date: datet
             except Exception:
                 pass
 
-    # 3. 비상 폴백: FDR 기본 심볼 시도 (예: NAVER 실패 시 KS11/KQ11 등)
+    # 4. 비상 폴백: FDR 기본 심볼 시도 (예: NAVER 실패 시 KS11/KQ11 등)
     if df.empty or len(df) < 5:
         alt_sym = "KS11" if "KOSPI" in index_info.get("name", "") else ("KQ11" if "KOSDAQ" in index_info.get("name", "") else None)
         if alt_sym and alt_sym != fdr_sym:
@@ -638,6 +662,7 @@ def fetch_index_raw_data(index_info: dict, start_date: datetime, end_date: datet
     if df.index.tz is not None:
         df.index = df.index.tz_localize(None)
 
+    df = df[~df.index.duplicated(keep="last")]
     df = df.sort_index()
     return df
 
